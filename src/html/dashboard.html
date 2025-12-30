@@ -294,10 +294,24 @@
           <div style="font-size: 12px; color: #5f6368; margin-top: 8px;">Set to 0 to disable idle-based discarding. Tabs not viewed for this duration will be automatically discarded.</div>
         </div>
       </div>
+
+      <div class="section">
+        <div class="section-title">Data Retention</div>
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 14px; color: #202124; display: block; margin-bottom: 8px;">
+            Keep telemetry data for:
+          </label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="retentionDaysInput" min="1" max="365" step="1" style="width: 80px; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px;">
+            <span style="font-size: 14px; color: #5f6368;">days</span>
+            <button id="saveRetentionBtn" style="padding: 8px 20px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Save</button>
+          </div>
+          <div style="font-size: 12px; color: #5f6368; margin-top: 8px;">Events older than this will be automatically deleted. Valid range: 1-365 days.</div>
+        </div>
+      </div>
     </div>
   </div>
   
-  <script src="../js/telemetry.js"></script>
-  <script src="../js/dashboard.js"></script>
+  <script type="module" src="../js/dashboard.js"></script>
 </body>
 </html>

@@ -1,0 +1,39 @@
+{
+  "name": "chrome-tab-killer",
+  "version": "1.0.0",
+  "description": "Chrome extension that automatically discards heavy tabs to save memory",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && npm run copy-assets",
+    "build:watch": "tsc --watch",
+    "copy-assets": "cp -r src/html dist/ && cp manifest.json dist/ && cp -r icons dist/",
+    "lint": "eslint src/ts --ext .ts",
+    "lint:fix": "eslint src/ts --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.29.1",
+    "fake-indexeddb": "^5.0.2",
+    "prettier": "^3.2.5",
+    "sinon-chrome": "^3.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

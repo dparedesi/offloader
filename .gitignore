@@ -1,6 +1,13 @@
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
 # IDE
 .vscode/
 .idea/
+*.code-workspace
 
 # OS
 .DS_Store
@@ -8,8 +15,18 @@ Thumbs.db
 
 # Logs
 *.log
+npm-debug.log*
 
 # Temporary files
 *.tmp
 *.swp
 *~
+
+# Test coverage
+coverage/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Package lock (optional - remove if you want to track it)
+# package-lock.json

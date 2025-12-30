@@ -1,21 +1,28 @@
 {
   "manifest_version": 3,
   "name": "Chrome Tab Killer",
-  "version": "1.0",
-  "description": "Discards heavy tabs (like SharePoint) on command",
+  "version": "1.1.0",
+  "description": "Automatically discards heavy tabs (like SharePoint, Slack) to save memory. Uses reliable alarm-based scheduling.",
   "permissions": [
     "tabs",
-    "storage"
+    "storage",
+    "alarms"
   ],
   "background": {
-    "service_worker": "src/js/background.js"
+    "service_worker": "js/background.js",
+    "type": "module"
   },
   "action": {
-    "default_popup": "src/html/popup.html",
+    "default_popup": "html/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }
