@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 280px;
+      padding: 15px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #202124;
+    }
+    
+    .toggle-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+    }
+    
+    .toggle-label {
+      font-size: 14px;
+      color: #5f6368;
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: #1a73e8;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    
+    .status {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e8eaed;
+      white-space: pre-line;
+    }
+    
+    .status-on {
+      color: #1a73e8;
+    }
+    
+    .status-off {
+      color: #5f6368;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Chrome Tab Killer</div>
+  
+  <div class="toggle-container">
+    <span class="toggle-label">Auto-discard</span>
+    <label class="switch">
+      <input type="checkbox" id="autoToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+  
+  <div style="margin-top: 10px;">
+    <label style="font-size: 12px; color: #5f6368; display: block; margin-bottom: 5px;">Interval:</label>
+    <select id="intervalSelect" style="width: 100%; padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px;">
+      <option value="5">Every 5 minutes</option>
+      <option value="10" selected>Every 10 minutes</option>
+      <option value="15">Every 15 minutes</option>
+      <option value="30">Every 30 minutes</option>
+    </select>
+  </div>
+  
+  <div class="status" id="status">Loading...</div>
+  
+  <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e8eaed;">
+    <div style="font-size: 12px; color: #5f6368; margin-bottom: 10px; font-weight: 500;">Target Sites:</div>
+    <div id="targetSitesContainer"></div>
+  </div>
+  
+  <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e8eaed;">
+    <div id="telemetryStats" style="font-size: 11px; color: #5f6368; margin-bottom: 10px; text-align: center;">Loading...</div>
+    <button id="dashboardBtn" style="width: 100%; padding: 8px; margin-bottom: 5px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View Dashboard</button>
+    <button id="exportBtn" style="width: 100%; padding: 8px; margin-bottom: 10px; background: #f1f3f4; color: #202124; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Export Data (JSON)</button>
+    <button id="discardAllBtn" style="width: 100%; padding: 8px; background: #ea4335; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">Discard All Tabs Now</button>
+  </div>
+  
+  <script src="../js/popup.js"></script>
+</body>
+</html>
