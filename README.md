@@ -2,6 +2,8 @@
 
 Automatically discards heavy tabs to free RAM while keeping them visible in your tab bar. Built for personal use to manage memory-hungry sites like SharePoint, Slack, and Asana.
 
+![Chrome Tab Killer Banner](banner.png)
+
 ## Why This Exists
 
 Chrome's built-in memory saver is too generic. This extension targets specific sites that consistently consume excessive RAM, discarding them on a schedule while protecting tabs you're actively using.
