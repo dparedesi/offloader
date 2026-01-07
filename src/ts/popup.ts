@@ -107,7 +107,7 @@ function renderTargetSites(container: HTMLElement): void {
   // Clear existing content safely
   container.replaceChildren();
 
-  const sortedSites = Object.keys(targetSites).filter((site) => targetSites[site]).sort();
+  const sortedSites = Object.keys(targetSites).sort();
 
   // Show message if no sites configured
   if (sortedSites.length === 0) {
@@ -173,7 +173,7 @@ async function handleSiteToggle(event: Event, site: string): Promise<void> {
 
   await chrome.storage.local.set({ targetSites });
 
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     action: 'updateTargetSites',
     targetSites,
   });
@@ -200,7 +200,7 @@ function updateStatus(
   }
 }
 
-async function loadTelemetryStats(statsElement: HTMLElement): Promise<void> {
+function loadTelemetryStats(statsElement: HTMLElement): void {
   chrome.runtime.sendMessage(
     { action: 'getTelemetryStats' },
     (response: MessageResponse<void> & { stats?: TelemetryStats }) => {
@@ -252,7 +252,7 @@ function setupEventListeners(elements: PopupElements, initialInterval: DiscardIn
   });
 }
 
-async function handleDiscardAll(button: HTMLButtonElement): Promise<void> {
+function handleDiscardAll(button: HTMLButtonElement): void {
   const confirmed = confirm('Discard all tabs except active and extensions?');
   if (!confirmed) return;
 
@@ -278,7 +278,7 @@ async function handleToggleChange(
 ): Promise<void> {
   await chrome.storage.local.set({ autoDiscardEnabled: enabled });
 
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     action: 'toggleAutoDiscard',
     enabled,
   });
@@ -292,7 +292,7 @@ async function handleIntervalChange(
 ): Promise<void> {
   await chrome.storage.local.set({ discardInterval: newInterval });
 
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     action: 'updateInterval',
     interval: newInterval,
   });
@@ -300,7 +300,7 @@ async function handleIntervalChange(
   updateStatus(elements.status, elements.toggle.checked, newInterval);
 }
 
-async function handleExport(button: HTMLButtonElement): Promise<void> {
+function handleExport(button: HTMLButtonElement): void {
   button.textContent = 'Exporting...';
   button.disabled = true;
 

@@ -216,7 +216,7 @@ function updateMostActive(mostActive: TabMetadata[]): void {
   for (const tab of mostActive) {
     const domain = tab.domain ?? 'Unknown';
     const title = tab.title ?? 'Untitled';
-    const activeTime = formatTime(tab.totalActiveTime ?? 0);
+    const activeTime = formatTime(tab.totalActiveTime);
 
     const item = createListItem();
 
@@ -329,9 +329,9 @@ function updateTargetSitesList(): void {
 
   container.replaceChildren();
 
-  const enabledSites = Object.entries(targetSites).filter(([_, enabled]) => enabled);
+  const allSites = Object.entries(targetSites).sort(([a], [b]) => a.localeCompare(b));
 
-  if (enabledSites.length === 0) {
+  if (allSites.length === 0) {
     const empty = document.createElement('div');
     empty.style.color = '#5f6368';
     empty.style.fontSize = '14px';
@@ -340,15 +340,35 @@ function updateTargetSitesList(): void {
     return;
   }
 
-  for (const [site] of enabledSites) {
+  for (const [site, enabled] of allSites) {
     const siteItem = document.createElement('div');
     siteItem.className = 'site-item';
+    if (!enabled) {
+      siteItem.style.opacity = '0.6';
+    }
 
     const siteInfo = document.createElement('div');
+    siteInfo.style.display = 'flex';
+    siteInfo.style.alignItems = 'center';
+    siteInfo.style.gap = '8px';
+
+    // Toggle checkbox
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.checked = enabled;
+    toggle.title = enabled ? 'Disable site' : 'Enable site';
+    toggle.addEventListener('change', () => {
+      void handleToggleSite(site, toggle.checked);
+    });
+    siteInfo.appendChild(toggle);
 
     const siteName = document.createElement('span');
     siteName.className = 'site-name';
     siteName.textContent = site;
+    if (!enabled) {
+      siteName.style.textDecoration = 'line-through';
+      siteName.style.color = '#5f6368';
+    }
     siteInfo.appendChild(siteName);
 
     const removeBtn = document.createElement('button');
@@ -514,17 +534,31 @@ async function handleAddSite(): Promise<void> {
     return;
   }
 
-  if (targetSites[site] === true) {
-    alert('This site is already in the list');
+  // Check if site already exists (enabled or disabled)
+  if (site in targetSites) {
+    if (targetSites[site] === true) {
+      alert('This site is already in the list and enabled');
+    } else {
+      // Site exists but is disabled - re-enable it
+      targetSites[site] = true;
+      await chrome.storage.local.set({ targetSites });
+      void chrome.runtime.sendMessage({
+        action: 'updateTargetSites',
+        targetSites,
+      });
+      input.value = '';
+      updateTargetSitesList();
+      alert(`"${site}" has been re-enabled`);
+    }
     return;
   }
 
-  // Add to target sites
+  // Add new site
   targetSites[site] = true;
   await chrome.storage.local.set({ targetSites });
 
   // Notify background script
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     action: 'updateTargetSites',
     targetSites,
   });
@@ -540,7 +574,19 @@ async function handleRemoveSite(site: string): Promise<void> {
   delete targetSites[site];
   await chrome.storage.local.set({ targetSites });
 
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
+    action: 'updateTargetSites',
+    targetSites,
+  });
+
+  updateTargetSitesList();
+}
+
+async function handleToggleSite(site: string, enabled: boolean): Promise<void> {
+  targetSites[site] = enabled;
+  await chrome.storage.local.set({ targetSites });
+
+  void chrome.runtime.sendMessage({
     action: 'updateTargetSites',
     targetSites,
   });
@@ -563,7 +609,7 @@ async function handleSaveIdleThreshold(): Promise<void> {
   idleTabThreshold = threshold;
   await chrome.storage.local.set({ idleTabThreshold: threshold });
 
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     action: 'updateIdleThreshold',
     threshold,
   });

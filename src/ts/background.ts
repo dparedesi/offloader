@@ -20,7 +20,7 @@ import {
   type MessageResponse,
   RETENTION_ALARM_NAME,
   type StorageData,
-  type TargetSites,
+  isValidDataRetentionDays,
   isValidDiscardInterval,
   isValidIdleThreshold,
 } from './types.js';
@@ -32,17 +32,61 @@ import {
 let config: ExtensionConfig = { ...DEFAULT_CONFIG };
 let activeTabId: number | null = null;
 let activeTabStartTime: number | null = null;
+let telemetryFailed = false;
+let sessionId: string | null = null; // Unique ID per browser session to detect tab ID reuse
+
+// ============================================================================
+// Session State Persistence (survives service worker restarts)
+// ============================================================================
+
+async function saveActiveTabState(): Promise<void> {
+  try {
+    await chrome.storage.session.set({
+      activeTabId,
+      activeTabStartTime,
+      sessionId,
+    });
+  } catch {
+    // storage.session may not be available in all contexts
+  }
+}
+
+async function loadActiveTabState(): Promise<void> {
+  try {
+    const result = await chrome.storage.session.get(['activeTabId', 'activeTabStartTime', 'sessionId']);
+    activeTabId = (result['activeTabId'] as number | null) ?? null;
+    activeTabStartTime = (result['activeTabStartTime'] as number | null) ?? null;
+    sessionId = (result['sessionId'] as string | null) ?? null;
+
+    // Generate new session ID if none exists (new browser session)
+    if (sessionId === null) {
+      sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      await chrome.storage.session.set({ sessionId });
+    }
+  } catch {
+    // storage.session may not be available, generate session ID anyway
+    if (sessionId === null) {
+      sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+  }
+}
 
 // ============================================================================
 // Initialization
 // ============================================================================
 
 async function initialize(): Promise<void> {
+  // Load session state first (active tab tracking)
+  await loadActiveTabState();
+
   // Initialize telemetry
   try {
     await telemetry.init();
+    telemetryFailed = false;
   } catch (error) {
     console.error('Failed to initialize telemetry:', error);
+    telemetryFailed = true;
+    // Telemetry failure is logged but not fatal - core discard functionality still works
   }
 
   // Load configuration from storage
@@ -67,15 +111,20 @@ async function loadConfig(): Promise<void> {
   ] satisfies (keyof StorageData)[]);
 
   config = {
-    autoDiscardEnabled: result['autoDiscardEnabled'] ?? DEFAULT_CONFIG.autoDiscardEnabled,
-    targetSites: result['targetSites'] ?? DEFAULT_CONFIG.targetSites,
+    autoDiscardEnabled:
+      (result['autoDiscardEnabled'] as boolean | undefined) ?? DEFAULT_CONFIG.autoDiscardEnabled,
+    targetSites:
+      (result['targetSites'] as ExtensionConfig['targetSites'] | undefined) ??
+      DEFAULT_CONFIG.targetSites,
     discardInterval: isValidDiscardInterval(result['discardInterval'] as number)
       ? (result['discardInterval'] as DiscardInterval)
       : DEFAULT_CONFIG.discardInterval,
     idleTabThreshold: isValidIdleThreshold(result['idleTabThreshold'] as number)
       ? (result['idleTabThreshold'] as number)
       : DEFAULT_CONFIG.idleTabThreshold,
-    dataRetentionDays: result['dataRetentionDays'] ?? DEFAULT_CONFIG.dataRetentionDays,
+    dataRetentionDays: isValidDataRetentionDays(result['dataRetentionDays'] as number)
+      ? (result['dataRetentionDays'] as number)
+      : DEFAULT_CONFIG.dataRetentionDays,
   };
 }
 
@@ -100,8 +149,10 @@ async function stopAutoDiscard(): Promise<void> {
 
 async function setupRetentionAlarm(): Promise<void> {
   // Run data retention check once per day
-  const existingAlarm = await chrome.alarms.get(RETENTION_ALARM_NAME);
-  if (existingAlarm === undefined) {
+  const existingAlarm = (await chrome.alarms.get(RETENTION_ALARM_NAME)) as
+    | chrome.alarms.Alarm
+    | undefined;
+  if (!existingAlarm) {
     await chrome.alarms.create(RETENTION_ALARM_NAME, {
       delayInMinutes: 60, // First run in 1 hour
       periodInMinutes: 24 * 60, // Then daily
@@ -161,6 +212,7 @@ async function handleTabCreated(tab: chrome.tabs.Tab): Promise<void> {
           windowId: tab.windowId,
           openerTabId: tab.openerTabId ?? null,
           createdAt: Date.now(),
+          ...(sessionId !== null && { sessionId }), // Track session to detect tab ID reuse
         });
       } catch {
         // Invalid URL, skip
@@ -176,27 +228,32 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 });
 
 async function handleTabActivated(activeInfo: chrome.tabs.TabActiveInfo): Promise<void> {
+  // Always track active tab state (even if telemetry fails)
+  const previousTabId = activeTabId;
+  const previousStartTime = activeTabStartTime;
+
+  // Track new active tab
+  activeTabId = activeInfo.tabId;
+  activeTabStartTime = Date.now();
+  void saveActiveTabState();
+
   if (!telemetry.isReady()) return;
 
   try {
     // Log previous tab's active time
-    if (activeTabId !== null && activeTabStartTime !== null) {
-      const activeTime = Date.now() - activeTabStartTime;
+    if (previousTabId !== null && previousStartTime !== null) {
+      const activeTime = Date.now() - previousStartTime;
 
-      await telemetry.logTabEvent(activeTabId, 'deactivated', { activeTime });
+      await telemetry.logTabEvent(previousTabId, 'deactivated', { activeTime });
 
-      const metadata = await telemetry.getTabMetadata(activeTabId);
+      const metadata = await telemetry.getTabMetadata(previousTabId);
       if (metadata !== undefined) {
-        await telemetry.updateTabMetadata(activeTabId, {
-          totalActiveTime: (metadata.totalActiveTime ?? 0) + activeTime,
+        await telemetry.updateTabMetadata(previousTabId, {
+          totalActiveTime: metadata.totalActiveTime + activeTime,
           lastActive: Date.now(),
         });
       }
     }
-
-    // Track new active tab
-    activeTabId = activeInfo.tabId;
-    activeTabStartTime = Date.now();
 
     await telemetry.logTabEvent(activeInfo.tabId, 'activated');
 
@@ -204,7 +261,7 @@ async function handleTabActivated(activeInfo: chrome.tabs.TabActiveInfo): Promis
     const metadata = await telemetry.getTabMetadata(activeInfo.tabId);
     if (metadata !== undefined) {
       await telemetry.updateTabMetadata(activeInfo.tabId, {
-        activationCount: (metadata.activationCount ?? 0) + 1,
+        activationCount: metadata.activationCount + 1,
         lastActive: Date.now(),
       });
     }
@@ -393,24 +450,27 @@ async function discardAllTabs(): Promise<number> {
   for (const tab of tabs) {
     if (shouldSkipTab(tab)) continue;
 
+    // After shouldSkipTab, we know tab.id is defined
+    const tabId = tab.id!;
+
     try {
-      await chrome.tabs.discard(tab.id!);
+      await chrome.tabs.discard(tabId);
       discardedCount++;
 
       if (telemetry.isReady()) {
-        void telemetry.logTabEvent(tab.id!, 'discarded', {
+        void telemetry.logTabEvent(tabId, 'discarded', {
           ...(tab.url !== undefined && { url: tab.url }),
           ...(tab.title !== undefined && { title: tab.title }),
           manual: true,
         });
 
-        void telemetry.updateTabMetadata(tab.id!, {
+        void telemetry.updateTabMetadata(tabId, {
           wasDiscarded: true,
           discardedAt: Date.now(),
         });
       }
     } catch (error) {
-      console.error(`Failed to discard tab ${tab.id ?? 'unknown'}:`, error);
+      console.error(`Failed to discard tab ${tabId}:`, error);
     }
   }
 
@@ -421,6 +481,14 @@ async function discardTargetTabs(): Promise<void> {
   try {
     const tabs = await chrome.tabs.query({});
     const discardedTabs: DiscardedTabInfo[] = [];
+
+    // Warn if idle detection is enabled but telemetry failed
+    if (config.idleTabThreshold > 0 && telemetryFailed) {
+      console.warn(
+        'Idle tab detection is enabled but telemetry failed to initialize. ' +
+          'Idle tabs will not be discarded until telemetry is available.'
+      );
+    }
 
     // Build patterns from enabled target sites
     const enabledPatterns = Object.entries(config.targetSites)
@@ -434,12 +502,16 @@ async function discardTargetTabs(): Promise<void> {
       if (shouldSkipTab(tab)) continue;
       if (tab.url === undefined) continue;
 
+      // After shouldSkipTab, we know tab.id is defined
+      const tabId = tab.id!;
+      const tabUrl = tab.url;
+
       let shouldDiscard = false;
       let reason: DiscardReason = 'site-match';
 
       // Check 1: Site-specific matching
       try {
-        const hostname = new URL(tab.url).hostname.toLowerCase();
+        const hostname = new URL(tabUrl).hostname.toLowerCase();
         const matchesSite = enabledPatterns.some((pattern) => hostname.includes(pattern));
 
         if (matchesSite) {
@@ -450,25 +522,30 @@ async function discardTargetTabs(): Promise<void> {
         continue; // Invalid URL
       }
 
-      // Check 2: Idle tab threshold
-      if (!shouldDiscard && config.idleTabThreshold > 0 && telemetry.isReady()) {
-        const metadata = await telemetry.getTabMetadata(tab.id!);
-        if (metadata?.lastActive !== undefined) {
-          const idleTime = now - metadata.lastActive;
-          if (idleTime > idleThresholdMs) {
-            shouldDiscard = true;
-            reason = 'idle';
+      // Check 2: Idle tab threshold (requires telemetry for lastActive tracking)
+      if (!shouldDiscard && config.idleTabThreshold > 0) {
+        if (telemetry.isReady()) {
+          const metadata = await telemetry.getTabMetadata(tabId);
+          if (metadata?.lastActive !== undefined) {
+            const idleTime = now - metadata.lastActive;
+            if (idleTime > idleThresholdMs) {
+              shouldDiscard = true;
+              reason = 'idle';
+            }
           }
+        } else if (telemetryFailed) {
+          // Log once per discard cycle that idle detection is unavailable
+          // (telemetryFailed flag prevents repeated warnings)
         }
       }
 
       if (shouldDiscard) {
         try {
-          await chrome.tabs.discard(tab.id!);
+          await chrome.tabs.discard(tabId);
 
-          const domain = new URL(tab.url).hostname;
+          const domain = new URL(tabUrl).hostname;
           discardedTabs.push({
-            url: tab.url,
+            url: tabUrl,
             domain,
             title: tab.title ?? 'Untitled',
             timeSinceLastActive: null,
@@ -476,19 +553,19 @@ async function discardTargetTabs(): Promise<void> {
           });
 
           if (telemetry.isReady()) {
-            void telemetry.logTabEvent(tab.id!, 'discarded', {
-              url: tab.url,
+            void telemetry.logTabEvent(tabId, 'discarded', {
+              url: tabUrl,
               ...(tab.title !== undefined && { title: tab.title }),
               reason,
             });
 
-            void telemetry.updateTabMetadata(tab.id!, {
+            void telemetry.updateTabMetadata(tabId, {
               wasDiscarded: true,
               discardedAt: Date.now(),
             });
           }
         } catch (error) {
-          console.error(`Failed to discard tab ${tab.id ?? 'unknown'}:`, error);
+          console.error(`Failed to discard tab ${tabId}:`, error);
         }
       }
     }
@@ -520,17 +597,5 @@ function shouldSkipTab(tab: chrome.tabs.Tab): boolean {
   return skipPrefixes.some((prefix) => tab.url!.startsWith(prefix));
 }
 
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-function isTargetSite(hostname: string, targetSites: TargetSites): boolean {
-  const enabledPatterns = Object.entries(targetSites)
-    .filter(([_, enabled]) => enabled)
-    .map(([site]) => site.toLowerCase());
-
-  return enabledPatterns.some((pattern) => hostname.includes(pattern));
-}
-
 // Export for testing
-export { initialize, discardTargetTabs, discardAllTabs, shouldSkipTab, isTargetSite };
+export { initialize, discardTargetTabs, discardAllTabs, shouldSkipTab };

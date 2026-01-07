@@ -29,9 +29,6 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
   dataRetentionDays: 180,
 };
 
-// Suggested sites shown as examples in the dashboard (not enabled by default)
-export const SUGGESTED_SITES = ['sharepoint', 'slack', 'asana', 'quicksight'] as const;
-
 // ============================================================================
 // Telemetry Types
 // ============================================================================
@@ -64,6 +61,7 @@ export interface TabEvent {
 
 export interface TabMetadata {
   tabId: number;
+  sessionId?: string; // Browser session ID to detect tab ID reuse
   url?: string;
   domain?: string;
   title?: string;

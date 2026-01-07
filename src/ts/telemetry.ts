@@ -25,7 +25,7 @@ const DB_VERSION = 2; // Bumped for schema changes
 
 type ObjectStoreName = 'tabEvents' | 'tabMetadata' | 'discardEvents';
 
-class TabTelemetry {
+export class TabTelemetry {
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
 
@@ -136,7 +136,8 @@ class TabTelemetry {
 
   /**
    * Update or create tab metadata.
-   * Merges with existing data if present.
+   * Merges with existing data if present and session matches.
+   * If session doesn't match (tab ID reuse), resets metadata.
    */
   async updateTabMetadata(
     tabId: number,
@@ -151,14 +152,34 @@ class TabTelemetry {
       const transaction = this.db.transaction(['tabMetadata'], 'readwrite');
       const store = transaction.objectStore('tabMetadata');
 
-      const existing = await this.promisifyRequest<TabMetadata | undefined>(store.get(tabId));
+      const request = store.get(tabId) as IDBRequest<TabMetadata | undefined>;
+      const existing = await this.promisifyRequest(request);
+
+      // Check for tab ID reuse: if session IDs don't match, this is a new tab with a reused ID
+      const isReusedTabId =
+        existing !== undefined &&
+        metadata.sessionId !== undefined &&
+        existing.sessionId !== undefined &&
+        existing.sessionId !== metadata.sessionId;
+
+      // If tab ID was reused, start fresh; otherwise merge with existing
+      const base: TabMetadata = isReusedTabId
+        ? {
+            tabId,
+            activationCount: 0,
+            totalActiveTime: 0,
+            wasDiscarded: false,
+          }
+        : {
+            tabId,
+            activationCount: 0,
+            totalActiveTime: 0,
+            wasDiscarded: false,
+            ...existing,
+          };
 
       const updated: TabMetadata = {
-        tabId,
-        activationCount: 0,
-        totalActiveTime: 0,
-        wasDiscarded: false,
-        ...existing,
+        ...base,
         ...metadata,
         lastUpdated: Date.now(),
       };
@@ -180,7 +201,8 @@ class TabTelemetry {
     try {
       const transaction = this.db.transaction(['tabMetadata'], 'readonly');
       const store = transaction.objectStore('tabMetadata');
-      return await this.promisifyRequest<TabMetadata | undefined>(store.get(tabId));
+      const request = store.get(tabId) as IDBRequest<TabMetadata | undefined>;
+      return await this.promisifyRequest(request);
     } catch (error) {
       console.error('Error getting tab metadata:', error);
       return undefined;
@@ -360,7 +382,8 @@ class TabTelemetry {
 
     const transaction = this.db.transaction([storeName], 'readonly');
     const store = transaction.objectStore(storeName);
-    return await this.promisifyRequest<T[]>(store.getAll());
+    const request = store.getAll() as IDBRequest<T[]>;
+    return await this.promisifyRequest(request);
   }
 
   private async countStore(storeName: ObjectStoreName): Promise<number> {
