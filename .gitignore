@@ -28,5 +28,8 @@ coverage/
 # TypeScript cache
 *.tsbuildinfo
 
+# Claude Code session context
+.context/
+
 # Package lock (optional - remove if you want to track it)
 # package-lock.json
