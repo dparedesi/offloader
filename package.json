@@ -1,5 +1,5 @@
 {
-  "name": "chrome-tab-killer",
+  "name": "offloader",
   "version": "1.1.0",
   "description": "Chrome extension that automatically discards heavy tabs to save memory",
   "type": "module",

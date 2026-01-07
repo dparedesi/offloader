@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Chrome Tab Killer is a Chrome extension (Manifest v3) that automatically discards memory-heavy browser tabs based on configurable site patterns and idle time. Written in TypeScript with strict type checking.
+Offloader is a Chrome extension (Manifest v3) that automatically discards memory-heavy browser tabs based on configurable site patterns and idle time. Written in TypeScript with strict type checking.
 
 ## Commands
 

@@ -1,10 +1,10 @@
-# Privacy Policy for Chrome Tab Killer
+# Privacy Policy for Offloader
 
 **Last updated:** January 7, 2026
 
 ## Overview
 
-Chrome Tab Killer is a browser extension that automatically discards memory-heavy tabs. Your privacy is important to us.
+Offloader is a browser extension that automatically discards memory-heavy tabs. Your privacy is important to us.
 
 ## Data Collection
 
@@ -37,12 +37,12 @@ Telemetry data is automatically purged after the retention period you configure 
 ## Open Source
 
 This extension is open source. You can review the code at:
-https://github.com/dparedesi/chrome-tab-killer
+https://github.com/dparedesi/offloader
 
 ## Contact
 
 For privacy concerns, please open an issue on GitHub:
-https://github.com/dparedesi/chrome-tab-killer/issues
+https://github.com/dparedesi/offloader/issues
 
 ## Changes
 

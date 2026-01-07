@@ -1,5 +1,5 @@
 /**
- * Core type definitions for Chrome Tab Killer extension.
+ * Core type definitions for Offloader extension.
  * All data structures are strongly typed for reliability and maintainability.
  */
 

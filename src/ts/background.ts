@@ -1,5 +1,5 @@
 /**
- * Service Worker for Chrome Tab Killer extension.
+ * Service Worker for Offloader extension.
  *
  * Key improvements over original:
  * - Uses chrome.alarms API for reliable scheduling (survives service worker sleep)

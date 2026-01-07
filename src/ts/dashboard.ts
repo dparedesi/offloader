@@ -1,5 +1,5 @@
 /**
- * Dashboard page controller for Chrome Tab Killer extension.
+ * Dashboard page controller for Offloader extension.
  *
  * Key improvements:
  * - Uses DOM APIs instead of innerHTML (XSS prevention)

@@ -1,5 +1,5 @@
 /**
- * Popup UI controller for Chrome Tab Killer extension.
+ * Popup UI controller for Offloader extension.
  *
  * Key improvements:
  * - Uses DOM APIs instead of innerHTML (XSS prevention)

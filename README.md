@@ -1,8 +1,8 @@
-# Chrome Tab Killer
+# Offloader
 
 Automatically discards heavy tabs to free RAM while keeping them visible in your tab bar. Built for personal use to manage memory-hungry sites like SharePoint, Slack, and Asana.
 
-![Chrome Tab Killer Banner](banner.png)
+![Offloader Banner](images/banner.png)
 
 ## Why This Exists
 
@@ -105,7 +105,7 @@ Tracks tab behavior locally in IndexedDB:
 ## Project Structure
 
 ```
-chrome-tab-killer/
+offloader/
 ├── manifest.json           # Extension configuration
 ├── package.json           # Dependencies and scripts
 ├── tsconfig.json          # TypeScript configuration
@@ -161,7 +161,7 @@ For scheduled execution independent of the extension timer:
 
 ```bash
 # Add to crontab (macOS)
-30 14 * * * /path/to/chrome-tab-killer/scripts/trigger-discard.sh
+30 14 * * * /path/to/offloader/scripts/trigger-discard.sh
 ```
 
 The script uses AppleScript to simulate the keyboard shortcut. Requires Chrome to be running.
@@ -203,4 +203,4 @@ The script uses AppleScript to simulate the keyboard shortcut. Requires Chrome t
 
 ## License
 
-Personal use. Not intended for public distribution or Chrome Web Store publication.
+MIT License. Available on the Chrome Web Store.
