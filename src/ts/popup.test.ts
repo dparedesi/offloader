@@ -651,9 +651,9 @@ describe('Popup UI', () => {
     });
 
     describe('discard all button', () => {
-      it.skip('should send discard all message when confirmed', async () => {
-        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      it('should send discard all message when confirmed', async () => {
+        const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+        const alertSpy = vi.spyOn(globalThis, 'alert').mockImplementation(() => {});
 
         mockChromeRuntime.sendMessage.mockImplementation(
           (message: unknown, callback?: (response: unknown) => void) => {
@@ -671,13 +671,13 @@ describe('Popup UI', () => {
 
         const elements = getElements();
         elements.discardAllBtn.click();
-        await flushPromises();
 
-        // Button should be disabled while processing
+        // Button should be disabled immediately after click
         expect(elements.discardAllBtn.textContent).toBe('Discarding...');
         expect(elements.discardAllBtn.disabled).toBe(true);
 
         await vi.runAllTimersAsync();
+        await flushPromises();
 
         expect(mockChromeRuntime.sendMessage).toHaveBeenCalledWith(
           { action: 'discardAll' },
@@ -743,7 +743,7 @@ describe('Popup UI', () => {
     });
 
     describe('export button', () => {
-      it.skip('should download JSON when export succeeds', async () => {
+      it('should download JSON when export succeeds', async () => {
         const testData = {
           exportDate: '2024-01-01',
           tabEvents: [],
@@ -784,13 +784,13 @@ describe('Popup UI', () => {
 
         const elements = getElements();
         elements.exportBtn.click();
-        await flushPromises();
 
-        // Button should be disabled while processing
+        // Button should be disabled immediately after click
         expect(elements.exportBtn.textContent).toBe('Exporting...');
         expect(elements.exportBtn.disabled).toBe(true);
 
         await vi.runAllTimersAsync();
+        await flushPromises();
 
         expect(mockChromeRuntime.sendMessage).toHaveBeenCalledWith(
           { action: 'exportTelemetry' },

@@ -634,3 +634,38 @@ async function handleSaveDataRetention(): Promise<void> {
 
   alert(`Data retention updated to ${days} days`);
 }
+
+// ============================================================================
+// Exports for Testing
+// ============================================================================
+
+// State getters for testing
+function getDashboardData(): ExportedData | null {
+  return dashboardData;
+}
+
+function getTargetSites(): TargetSites {
+  return targetSites;
+}
+
+export {
+  // Types
+  type DashboardStats,
+  // Pure functions (can be tested without DOM)
+  calculateStats,
+  formatTime,
+  getTimeAgo,
+  truncate,
+  // Functions that need DOM
+  loadDashboard,
+  setupEventListeners,
+  handleExport,
+  handleAddSite,
+  handleRemoveSite,
+  handleToggleSite,
+  handleSaveIdleThreshold,
+  handleSaveDataRetention,
+  // State getters for testing
+  getDashboardData,
+  getTargetSites,
+};

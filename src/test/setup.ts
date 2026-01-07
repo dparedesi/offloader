@@ -195,4 +195,11 @@ export function resetMocks(): void {
   vi.clearAllMocks();
   Object.keys(storageData).forEach((key) => delete storageData[key]);
   alarms.clear();
+  // Note: alarmListeners is NOT cleared here because listeners are registered
+  // at module load time and should persist across tests
+}
+
+// Helper to clear alarm listeners (use with vi.resetModules())
+export function clearAlarmListeners(): void {
+  alarmListeners.length = 0;
 }

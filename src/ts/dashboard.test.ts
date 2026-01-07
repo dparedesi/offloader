@@ -8,113 +8,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetMocks, mockChromeRuntime, storageData } from '../test/setup.js';
 
+import {
+  calculateStats,
+  formatTime,
+  getTimeAgo,
+  truncate,
+} from './dashboard.js';
 import { telemetry } from './telemetry.js';
 import type { ExportedData, DiscardEvent, TabMetadata, TabEvent } from './types.js';
 
 // ============================================================================
-// Test Utilities - Re-implement pure functions for testing
-// ============================================================================
-
-// These functions are internal to dashboard.ts, so we re-implement them here
-// to test the logic independently. In a production codebase, these would
-// ideally be exported from a utils module.
-
-function formatTime(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`;
-  } else {
-    return `${seconds}s`;
-  }
-}
-
-function getTimeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return `${seconds}s ago`;
-}
-
-function truncate(str: string, length: number): string {
-  if (str.length <= length) return str;
-  return str.substring(0, length) + '...';
-}
-
-interface DashboardStats {
-  totalEvents: number;
-  totalTabs: number;
-  totalDiscards: number;
-  tabsDiscarded: number;
-  topDomains: Record<string, number>;
-  mostActive: TabMetadata[];
-  mostDiscarded: Record<string, number>;
-}
-
-function calculateStats(data: ExportedData): DashboardStats {
-  const stats: DashboardStats = {
-    totalEvents: data.tabEvents.length,
-    totalTabs: data.tabMetadata.length,
-    totalDiscards: data.discardEvents.length,
-    tabsDiscarded: 0,
-    topDomains: {},
-    mostActive: [],
-    mostDiscarded: {},
-  };
-
-  // Count total tabs discarded and by domain
-  for (const event of data.discardEvents) {
-    stats.tabsDiscarded += event.discardedCount;
-
-    for (const tab of event.tabs) {
-      const domain = tab.domain;
-      stats.mostDiscarded[domain] = (stats.mostDiscarded[domain] ?? 0) + 1;
-    }
-  }
-
-  // Count tabs by domain
-  for (const tab of data.tabMetadata) {
-    if (tab.domain !== undefined) {
-      stats.topDomains[tab.domain] = (stats.topDomains[tab.domain] ?? 0) + 1;
-    }
-  }
-
-  // Get most active tabs
-  stats.mostActive = data.tabMetadata
-    .filter((tab) => tab.activationCount > 0)
-    .sort((a, b) => b.activationCount - a.activationCount)
-    .slice(0, 10);
-
-  return stats;
-}
-
-// ============================================================================
 // DOM Mocking Setup
 // ============================================================================
-
-function createMockElement(
-  tag: string,
-  id?: string,
-  value?: string
-): HTMLElement {
-  const element = document.createElement(tag);
-  if (id !== undefined) {
-    element.id = id;
-  }
-  if (value !== undefined && element instanceof HTMLInputElement) {
-    element.value = value;
-  }
-  return element;
-}
 
 function setupMockDOM(): void {
   // Create mock DOM elements that dashboard.ts expects
